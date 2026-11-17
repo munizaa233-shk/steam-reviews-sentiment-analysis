@@ -1,0 +1,13 @@
+# Datasets
+*.csv
+*.parquet
+*.xlsx
+*.json
+
+# Python Cache & Environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.vscode/
+.DS_Store
