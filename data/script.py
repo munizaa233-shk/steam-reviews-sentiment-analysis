@@ -16,73 +16,62 @@ df = pd.read_csv("data/steam_reviews_processed.csv", encoding='latin1')
 # #step no 1 (Data Cleaning):
 # #checking null values and dropping them:
 
-# print("printing missing values before:",df.isnull().sum())
 
-# df= df.dropna(subset=['review'])
+#Step2 (data filtering)
 
-# df['hour_played']= df['hour_played'].fillna(0)
+#finding the most mentioned game and its hour played:
 
-# df['helpful']=df['helpful'].fillna(0)
+most_mentioned_game = df['title'].value_counts().index[0]
+most_mentioned_count =df['title'].value_counts().iloc[0]
 
-# # #check after cleaning:
+print(f"the most mentioned game in the datset is: {most_mentioned_game} with {most_mentioned_count} reviews")
 
-# print("printing missing values after:" , df.isnull().sum())
+total_play_hours= df[df['title']==most_mentioned_game]
+print(total_play_hours['hour_played'].describe())
 
-# #Step2 (data filtering)
+#finding which game hold the max hours
 
-# #finding the most mentioned game and its hour played:
+max_hours= df['hour_played'].idxmax()
 
-# most_mentioned_game = df['title'].value_counts().index[0]
-# most_mentioned_count =df['title'].value_counts().iloc[0]
+max_player_row = df.loc[max_hours]
+print(f"Game with the most played hours: {max_player_row['title']}")
+print(f"Hours played: {max_player_row['hour_played']}")
 
-# print(f"the most mentioned game in the datset is: {most_mentioned_game} with {most_mentioned_count} reviews")
+# #verall max hours grouped by game
+max_by_game = df.groupby('title')['hour_played'].max().sort_values(ascending=False)
+print(max_by_game.head(5))
 
-# total_play_hours= df[df['title']==most_mentioned_game]
-# print(total_play_hours['hour_played'].describe())
+#finding the decrease in playing hours and in which game
+df['date_posted']= pd.to_datetime(df['date_posted'])
 
-# # #finding which game hold the max hours
+yearly_playtime= df.groupby(['title',df['date_posted'].dt.year])['hour_played'].mean().unstack()
 
-# max_hours= df['hour_played'].idxmax()
+yearly_playtime['drop'] = yearly_playtime.iloc[:,-2] - yearly_playtime.iloc[:,-1]
 
-# max_player_row = df.loc[max_hours]
-# print(f"Game with the most played hours: {max_player_row['title']}")
-# print(f"Hours played: {max_player_row['hour_played']}")
-
-# # #verall max hours grouped by game
-# max_by_game = df.groupby('title')['hour_played'].max().sort_values(ascending=False)
-# print(max_by_game.head(5))
-
-# #finding the decrease in playing hours and in which game
-# df['date_posted']= pd.to_datetime(df['date_posted'])
-
-# yearly_playtime= df.groupby(['title',df['date_posted'].dt.year])['hour_played'].mean().unstack()
-
-# yearly_playtime['drop'] = yearly_playtime.iloc[:,-2] - yearly_playtime.iloc[:,-1]
-
-# biggest_drop = yearly_playtime.sort_values(by='drop', ascending=False)
+biggest_drop = yearly_playtime.sort_values(by='drop', ascending=False)
 # print(biggest_drop['drop'].head()) 
 
 # #evaluating the most extreme drop
 
-# extreme_drop_game = biggest_drop['drop'].index[0]
+extreme_drop_game = biggest_drop['drop'].index[0]
 
-# extreme_drop_value = biggest_drop['drop'].iloc[0]
+extreme_drop_value = biggest_drop['drop'].iloc[0]
 
-# print(f"The game with the highest play-hour drop is: {extreme_drop_game}")
-# print(f"Total average drop: {extreme_drop_value:.2f} hours")
+print(f"The game with the highest play-hour drop is: {extreme_drop_game}")
+print(f"Total average drop: {extreme_drop_value:.2f} hours")
 
 
-# exmaple = df['review'][50]
-# print(exmaple)
+exmaple = df['review'][50]
+print(exmaple)
 
-# tokens= nltk.word_tokenize(exmaple)
-# print(tokens[:20])
+tokens= nltk.word_tokenize(exmaple)
+print(tokens[:20])
 
-# pos= nltk.pos_tag(tokens)
-# print(pos[:10])
+pos= nltk.pos_tag(tokens)
+print(pos[:10])
 
-# entities= nltk.chunk.ne_chunk(pos)
-# entities.pprint()
+entities= nltk.chunk.ne_chunk(pos)
+entities.pprint()
 
 #VADER
 
@@ -91,83 +80,83 @@ from tqdm import tqdm
 
 sia = SentimentIntensityAnalyzer()
 
-# print(sia.polarity_scores(exmaple))
+print(sia.polarity_scores(exmaple))
 
-# df['sentiment_score']= [
-#     sia.polarity_scores(str(text))['compound']
-#     for text in tqdm (df['review'].values, desc="Scoring Sentiment") 
-# ]
+df['sentiment_score']= [
+    sia.polarity_scores(str(text))['compound']
+    for text in tqdm (df['review'].values, desc="Scoring Sentiment") 
+]
 
-# df.to_csv('steam_reviews_processed.csv', index=False)
+df.to_csv('steam_reviews_processed.csv', index=False)
 
 # MOST POSITIVE GAME WITH ITS HOUR PLAYED:
 
-# game_sentiment = df.groupby('title').agg ({
-#     'sentiment_score': 'mean',
-#     'hour_played': 'mean'
-# }).reset_index()
+game_sentiment = df.groupby('title').agg ({
+    'sentiment_score': 'mean',
+    'hour_played': 'mean'
+}).reset_index()
 
-# top_game = game_sentiment.sort_values(by='sentiment_score',ascending=False).iloc[0]
+top_game = game_sentiment.sort_values(by='sentiment_score',ascending=False).iloc[0]
 
-# print(" Highest Positive Rated Game")
-# print(f"Game: {top_game['title']}")
-# print(f"Average Sentiment Score: {top_game['sentiment_score']:.4f}")
-# print(f"Average Hours Played: {top_game['hour_played']:.2f}\n")
+print(" Highest Positive Rated Game")
+print(f"Game: {top_game['title']}")
+print(f"Average Sentiment Score: {top_game['sentiment_score']:.4f}")
+print(f"Average Hours Played: {top_game['hour_played']:.2f}\n")
 
-# # THE MOST NEGATIVE GAME WITH ITS REVIEW 
+# THE MOST NEGATIVE GAME WITH ITS REVIEW 
 
-# leat_review = df.groupby('title').agg({
-#     'sentiment_score' : 'mean',
-#     'hour_played' : 'mean'
-# }).reset_index()
+leat_review = df.groupby('title').agg({
+    'sentiment_score' : 'mean',
+    'hour_played' : 'mean'
+}).reset_index()
 
-# bottom_game = game_sentiment.sort_values(by='sentiment_score', ascending= True).iloc[0]
-# worst_game = bottom_game['title']
+bottom_game = game_sentiment.sort_values(by='sentiment_score', ascending= True).iloc[0]
+worst_game = bottom_game['title']
 
-# print("Most Negative Rated Game")
-# print(f"Game: {worst_game}")
-# print(f"Average Sentiment Score: {bottom_game['sentiment_score']:.4f}")
+print("Most Negative Rated Game")
+print(f"Game: {worst_game}")
+print(f"Average Sentiment Score: {bottom_game['sentiment_score']:.4f}")
 
-# negative_reviews = df[df['title'] == worst_game].sort_values(by='sentiment_score', ascending=True)['review'].dropna().head(3)
-# print("negative review snippet:")
-# for review in negative_reviews:
-#     print(f"--> {review[:500]}")
-# print("\n" + "="*40 + "\n")
+negative_reviews = df[df['title'] == worst_game].sort_values(by='sentiment_score', ascending=True)['review'].dropna().head(3)
+print("negative review snippet:")
+for review in negative_reviews:
+    print(f"--> {review[:500]}")
+print("\n" + "="*40 + "\n")
 
-# # Most and Least Recommended Game
+# Most and Least Recommended Game
 
-# #converting recomendation colum from text to numeric values
+#converting recomendation colum from text to numeric values
 
-# # Convert recommendation column cleanly (handles True/False, booleans, and text strings)
-# df['rec_numeric'] = df['recommendation'].apply(lambda x: 1 if str(x).strip().lower() in ['true', '1', 'recommended', '1.0'] else 0)
+# Convert recommendation column cleanly (handles True/False, booleans, and text strings)
+df['rec_numeric'] = df['recommendation'].apply(lambda x: 1 if str(x).strip().lower() in ['true', '1', 'recommended', '1.0'] else 0)
 
 # # Group by title and compute average recommendation rate
-# rec_summary = df.groupby('title')['rec_numeric'].mean().reset_index()
+rec_summary = df.groupby('title')['rec_numeric'].mean().reset_index()
 
-# most_rec = rec_summary.sort_values(by='rec_numeric', ascending=False).iloc[0]
-# least_rec = rec_summary.sort_values(by='rec_numeric', ascending=True).iloc[0]
+most_rec = rec_summary.sort_values(by='rec_numeric', ascending=False).iloc[0]
+least_rec = rec_summary.sort_values(by='rec_numeric', ascending=True).iloc[0]
 
-# print(" Recommendation Breakdown ")
-# print(f"Most Recommended Game: {str(most_rec['title']).encode('ascii', 'ignore').decode()} ({most_rec['rec_numeric']*100:.1f}% positive)")
-# print(f"Least Recommended Game: {str(least_rec['title']).encode('ascii', 'ignore').decode()} ({least_rec['rec_numeric']*100:.1f}% positive)")
-# print("\n" + "="*40 + "\n")
+print(" Recommendation Breakdown ")
+print(f"Most Recommended Game: {str(most_rec['title']).encode('ascii', 'ignore').decode()} ({most_rec['rec_numeric']*100:.1f}% positive)")
+print(f"Least Recommended Game: {str(least_rec['title']).encode('ascii', 'ignore').decode()} ({least_rec['rec_numeric']*100:.1f}% positive)")
+print("\n" + "="*40 + "\n")
 
 # # Group by the early access column
 
-# print(" Early Access vs Full Release Analysis ")
+print(" Early Access vs Full Release Analysis ")
 
-# early_access_col = 'is_early_access_review'
+early_access_col = 'is_early_access_review'
 
-# ea_summary = df.groupby(early_access_col)['sentiment_score'].agg(['mean', 'count']).reset_index()
+ea_summary = df.groupby(early_access_col)['sentiment_score'].agg(['mean', 'count']).reset_index()
 
-# for index, row in ea_summary.iterrows():
-#     # If True it's Early Access, if False it's Full Release
-#     status = "Early Access Review" if row[early_access_col] == True else "Full Release Review"
-#     print(f"Status: {status}")
-#     print(f"  - Average Sentiment Score: {row['mean']:.4f}")
-#     print(f"  - Total Review Count: {row['count']:,}")
+for index, row in ea_summary.iterrows():
+    # If True it's Early Access, if False it's Full Release
+    status = "Early Access Review" if row[early_access_col] == True else "Full Release Review"
+    print(f"Status: {status}")
+    print(f"  - Average Sentiment Score: {row['mean']:.4f}")
+    print(f"  - Total Review Count: {row['count']:,}")
 
-# print("\n" + "="*40 + "\n")
+print("\n" + "="*40 + "\n")
 
 #recuuring negative terms for a game
 
@@ -177,26 +166,25 @@ from nltk.corpus import stopwords
 
 nltk.download('stopwords', quiet=True)
 
-# # Make sure you're filtering the FULL dataframe (no .head() anywhere!)
-# negative_texts = df[df['sentiment_score'] < -0.05]['review'].dropna()
-# print(f"Total negative reviews being analyzed: {len(negative_texts):,}")
+negative_texts = df[df['sentiment_score'] < -0.05]['review'].dropna()
+print(f"Total negative reviews being analyzed: {len(negative_texts):,}")
 
-# stop_words = set(stopwords.words('english')).union(stopwords.words('spanish')).union({
-#     'game', 'games', 'play', 'played', 'playing', 'time', 'like', 'just', 
-#     'really', 'even', 'would', 'could', 'get', 'make', 'still', 'good', 'much',
-#     'your', 'there', 'will', 'when', 'more', 'this', 'that', 'from', 'with',
-#     'take', 'taking', 'every', 'want', 'dont', 'people', 'player', 'players' # filtering general pronouns/nouns to expose specific issues
-# })
-# words = []
-# for text in negative_texts:
-#     cleaned_words = re.findall(r'\b[a-zA-Z]{4,}\b', str(text).lower())
-#     words.extend([w for w in cleaned_words if w not in stop_words])
+stop_words = set(stopwords.words('english')).union(stopwords.words('spanish')).union({
+    'game', 'games', 'play', 'played', 'playing', 'time', 'like', 'just', 
+    'really', 'even', 'would', 'could', 'get', 'make', 'still', 'good', 'much',
+    'your', 'there', 'will', 'when', 'more', 'this', 'that', 'from', 'with',
+    'take', 'taking', 'every', 'want', 'dont', 'people', 'player', 'players' # filtering general pronouns/nouns to expose specific issues
+})
+words = []
+for text in negative_texts:
+    cleaned_words = re.findall(r'\b[a-zA-Z]{4,}\b', str(text).lower())
+    words.extend([w for w in cleaned_words if w not in stop_words])
 
-# common_neg_word = Counter(words).most_common(10)
+common_neg_word = Counter(words).most_common(10)
 
-# print("Top recurring words/complaints in negative reviews:")
-# for word, count in common_neg_word:
-#     print(f"  - '{word}': mentioned {count:,} times")
+print("Top recurring words/complaints in negative reviews:")
+for word, count in common_neg_word:
+    print(f"  - '{word}': mentioned {count:,} times")
 
 
 # --- Query 6: Playtime vs. Sentiment Analysis ---
